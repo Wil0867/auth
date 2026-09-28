@@ -66,6 +66,10 @@ public class UsuarioUseCase {
                 .filter(id -> id > 0)
                 .orElseThrow(() -> new IllegalArgumentException("El id del usuario debe ser válido y mayor a cero"));
 
+        Optional.of(usuarioGateway.existeUsuario(idValidado))
+                .filter(existe -> existe)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con el id: " + idValidado));
+
         usuarioGateway.eliminarUsuario(idValidado);
     }
 
@@ -116,5 +120,24 @@ public class UsuarioUseCase {
 
         return Optional.ofNullable(usuarioGateway.buscarusuario(idValidado))
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró un usuario con el id: " + idValidado));
+    }
+
+    public Usuario login(String correo, String clave) {
+        String correoValidado = Optional.ofNullable(correo)
+                .filter(valor -> !valor.trim().isEmpty())
+                .orElseThrow(() -> new IllegalArgumentException("El correo es obligatorio"));
+
+        String claveValidada = Optional.ofNullable(clave)
+                .filter(valor -> !valor.trim().isEmpty())
+                .orElseThrow(() -> new IllegalArgumentException("La clave es obligatoria"));
+
+        Usuario usuario = Optional.ofNullable(usuarioGateway.buscarPorCorreo(correoValidado))
+                .orElseThrow(() -> new IllegalArgumentException("Correo o clave incorrectos"));
+
+        if (!usuario.getClave().equals(claveValidada)) {
+            throw new IllegalArgumentException("Correo o clave incorrectos");
+        }
+
+        return usuario;
     }
 }

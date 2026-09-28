@@ -1,6 +1,8 @@
 package com.ecommerce.auth.infraestructure.entry_points;
 import com.ecommerce.auth.domain.model.Usuario;
 import com.ecommerce.auth.domain.usecase.UsuarioUseCase;
+import com.ecommerce.auth.infraestructure.entry_points.dto.LoginRequest;
+import com.ecommerce.auth.infraestructure.entry_points.dto.LoginResponse;
 import com.ecommerce.auth.infraestructure.mapper.MapperUsuario;
 import com.ecommerce.auth.infraestructure.driver_adapters.UsuarioData;
 import org.springframework.http.HttpStatus;
@@ -45,11 +47,12 @@ public class UsuarioController {
 
     @DeleteMapping("/{idUsuario}")
     public ResponseEntity<String> eliminarUsuario(@PathVariable Long idUsuario){
+
         try{
             usuarioUseCase.eliminarUsuario(idUsuario);
-            return ResponseEntity.ok().body("Usuario eliminado exitosamente");
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.ok("Usuario eliminado exitosamente");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
@@ -62,6 +65,30 @@ public class UsuarioController {
             return ResponseEntity.ok(usuarioActualizado);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        try {
+            Usuario usuario = usuarioUseCase.login(
+                    loginRequest.getCorreo(),
+                    loginRequest.getClave()
+            );
+
+            LoginResponse response = new LoginResponse(
+                    usuario.getIdUsuario(),
+                    usuario.getNombre(),
+                    usuario.getCorreo(),
+                    usuario.getRol(),
+                    usuario.getEdad(),
+                    usuario.getNumeroTelefonico()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 

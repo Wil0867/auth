@@ -12,5 +12,6 @@ public interface UsuarioGateway {
     Usuario eliminarUsuario(Long idUsuario);
     Usuario buscarusuario(Long idUsuario);
     Usuario modificarusuario(Usuario usuario);
-
+    boolean existeUsuario(Long idUsuario);
+    Usuario buscarPorCorreo(String correo);
 }

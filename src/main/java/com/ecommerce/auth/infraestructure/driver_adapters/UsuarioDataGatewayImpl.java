@@ -10,21 +10,20 @@ import org.springframework.stereotype.Repository;
 
     public class UsuarioDataGatewayImpl implements UsuarioGateway {
 
+    private final MapperUsuario mapperUsuario;
+    private final UsuarioDataJpaRepository repository;
 
-        private final MapperUsuario mapperUsuario;
-        private final UsuarioDataJpaRepository repository;
 
-
-        @Override
-        public Usuario guardarusuario(Usuario usuario) {
-            UsuarioData usuarioData = mapperUsuario.toUsuarioData(usuario);
-            return mapperUsuario.toUsuario(repository.save(usuarioData));
-        }
+    @Override
+    public Usuario guardarusuario(Usuario usuario) {
+    UsuarioData usuarioData = mapperUsuario.toUsuarioData(usuario);
+    return mapperUsuario.toUsuario(repository.save(usuarioData));
+    }
 
 
     @Override
     public Usuario eliminarUsuario(Long idUsuario) {
-            repository.deleteById(idUsuario);
+        repository.deleteById(idUsuario);
 
         return null;
     }
@@ -41,8 +40,17 @@ import org.springframework.stereotype.Repository;
             return mapperUsuario.toUsuario(repository.save(usuarioData));
     }
 
+    @Override
+    public boolean existeUsuario(Long idUsuario) {
+        return repository.existsById(idUsuario);
+    }
 
-
+    @Override
+    public Usuario buscarPorCorreo(String correo) {
+        return repository.findByCorreo(correo)
+                .map(mapperUsuario::toUsuario)
+                .orElse(null);
+    }
 }
 
 
