@@ -3,19 +3,19 @@ package com.ecommerce.auth.domain.usecase;
 import com.ecommerce.auth.domain.model.Usuario;
 import com.ecommerce.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.apache.coyote.Response;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import java.util.Optional;
 
-@Component
 @RequiredArgsConstructor
-
-
 public class UsuarioUseCase {
 
     private final UsuarioGateway usuarioGateway;
+    private final PasswordEncoder passwordEncoder;
 
     public Usuario guardarUsuario(Usuario usuario) {
-
         // 1. Validar que el objeto completo no sea nulo
         Usuario usuarioAValidar = Optional.ofNullable(usuario)
                 .orElseThrow(() -> new IllegalArgumentException("El objeto usuario no puede ser nulo"));
@@ -51,14 +51,12 @@ public class UsuarioUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("El usuario debe ser mayor de edad (mínimo 18 años)"));
 
         Optional.of(usuarioAValidar.getCorreo())
-                .filter(correo -> true)
-                .filter(correo -> correo.contains("@"))
-                .orElseThrow(() -> new IllegalArgumentException("El correo es obligatorio y debe contener un @ válido"));
+                .filter(correo -> correo.contains("@gmail.com"+"@hotmail.com"+"@outlook.com"+"@yahoo.com"))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "El correo debe ser de gmail, hotmail, outlook o yahoo"));
 
-        // Si pasa todas las validaciones (ningún orElseThrow se activó), se guarda
+        usuario.setClave(passwordEncoder.encode(usuario.getClave()));
         return usuarioGateway.guardarusuario(usuarioAValidar);
-
-
     }
 
     public void eliminarUsuario(Long idUsuario) {
@@ -106,7 +104,6 @@ public class UsuarioUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("El usuario debe ser mayor de edad (mínimo 18 años)"));
 
         Optional.of(usuarioAValidar.getCorreo())
-                .filter(correo -> true)
                 .filter(correo -> correo.contains("@"))
                 .orElseThrow(() -> new IllegalArgumentException("El correo es obligatorio y debe contener un @ válido"));
 
@@ -134,10 +131,8 @@ public class UsuarioUseCase {
         Usuario usuario = Optional.ofNullable(usuarioGateway.buscarPorCorreo(correoValidado))
                 .orElseThrow(() -> new IllegalArgumentException("Correo o clave incorrectos"));
 
-        if (!usuario.getClave().equals(claveValidada)) {
-            throw new IllegalArgumentException("Correo o clave incorrectos");
-        }
-
-        return usuario;
+        return Optional.of(usuario)
+                .filter(u -> passwordEncoder.matches(claveValidada, u.getClave()))
+                .orElseThrow(() -> new IllegalArgumentException("Correo o clave incorrectos"));
     }
 }

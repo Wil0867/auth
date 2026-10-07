@@ -16,9 +16,9 @@ public class UsuarioData {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long idUsuario;
     private String nombre;
-    @Column(length = 20, nullable = false, unique = true)
+    @Column(length = 255, nullable = false, unique = true)
     private String correo;
-    @Column(length = 12, nullable = false)
+    @Column(length = 255, nullable = false)
     private String clave;
     private String rol;
     private String numeroTelefonico;

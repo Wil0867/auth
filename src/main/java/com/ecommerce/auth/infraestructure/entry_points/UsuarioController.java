@@ -1,96 +1,90 @@
 package com.ecommerce.auth.infraestructure.entry_points;
+
 import com.ecommerce.auth.domain.model.Usuario;
 import com.ecommerce.auth.domain.usecase.UsuarioUseCase;
-import com.ecommerce.auth.infraestructure.entry_points.dto.LoginRequest;
-import com.ecommerce.auth.infraestructure.entry_points.dto.LoginResponse;
-import com.ecommerce.auth.infraestructure.mapper.MapperUsuario;
 import com.ecommerce.auth.infraestructure.driver_adapters.UsuarioData;
+import com.ecommerce.auth.infraestructure.entry_points.dto.LoginRequest;
+import com.ecommerce.auth.infraestructure.mapper.MapperUsuario;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("api/ecommerce/usuario")
 @RequiredArgsConstructor
-
 public class UsuarioController {
 
     private final UsuarioUseCase usuarioUseCase;
     private final MapperUsuario mapperUsuario;
 
     @PostMapping("/save")
-    public ResponseEntity<Usuario> guardarUsuario(@RequestBody UsuarioData usuarioData){
-        Usuario usuario = mapperUsuario.toUsuario(usuarioData);
-        Usuario usuarioValidaGuardado = usuarioUseCase.guardarUsuario(usuario);
-
-        if(usuarioValidaGuardado.getIdUsuario() != null){
-            return new ResponseEntity<>(usuarioValidaGuardado, HttpStatus.OK);
-        }
-
-        return new ResponseEntity<>(usuarioValidaGuardado, HttpStatus.CONFLICT);
+    public ResponseEntity<?> guardarUsuario(@RequestBody UsuarioData usuarioData) {
+        return Optional.ofNullable(usuarioData)
+                .map(mapperUsuario::toUsuario)
+                .map(usuarioUseCase::guardarUsuario)
+                .map(usuarioGuardado -> usuarioGuardado.getIdUsuario() != null
+                        ? ResponseEntity.ok("Registro éxitoso")
+                        : ResponseEntity.status(HttpStatus.CONFLICT).body(usuarioGuardado))
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-
     @GetMapping("/{idUsuario}")
-    public ResponseEntity<Usuario> buscarUsuario(@PathVariable Long idUsuario){
-        try {
-            Usuario usuario = usuarioUseCase.buscarUsuario(idUsuario);
-            return ResponseEntity.ok(usuario);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-
+    public ResponseEntity<Usuario> buscarUsuario(@PathVariable Long idUsuario) {
+        return Optional.ofNullable(idUsuario)
+                .map(id -> {
+                    try {
+                        return usuarioUseCase.buscarUsuario(id);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{idUsuario}")
-    public ResponseEntity<String> eliminarUsuario(@PathVariable Long idUsuario){
-
-        try{
-            usuarioUseCase.eliminarUsuario(idUsuario);
-            return ResponseEntity.ok("Usuario eliminado exitosamente");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<String> eliminarUsuario(@PathVariable Long idUsuario) {
+        return Optional.ofNullable(idUsuario)
+                .map(id -> {
+                    try {
+                        usuarioUseCase.eliminarUsuario(id);
+                        return ResponseEntity.ok("Usuario eliminado exitosamente");
+                    } catch (IllegalArgumentException e) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+                    }
+                })
+                .orElseGet(() -> ResponseEntity.badRequest().body("El id del usuario es obligatorio"));
     }
 
     @PutMapping("/{idUsuario}")
-    public ResponseEntity<Usuario> actualizarUsuario(@PathVariable Long idUsuario, @RequestBody UsuarioData usuarioData){
-        try {
-            Usuario usuario = mapperUsuario.toUsuario(usuarioData);
-            usuario.setIdUsuario(idUsuario);
-            Usuario usuarioActualizado = usuarioUseCase.modificarUsuario(usuario);
-            return ResponseEntity.ok(usuarioActualizado);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Usuario> actualizarUsuario(@PathVariable Long idUsuario, @RequestBody UsuarioData usuarioData) {
+        return Optional.ofNullable(usuarioData)
+                .map(mapperUsuario::toUsuario)
+                .map(usuario -> {
+                    usuario.setIdUsuario(idUsuario);
+                    try {
+                        return usuarioUseCase.modificarUsuario(usuario);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        try {
-            Usuario usuario = usuarioUseCase.login(
-                    loginRequest.getCorreo(),
-                    loginRequest.getClave()
-            );
-
-            LoginResponse response = new LoginResponse(
-                    usuario.getIdUsuario(),
-                    usuario.getNombre(),
-                    usuario.getCorreo(),
-                    usuario.getRol(),
-                    usuario.getEdad(),
-                    usuario.getNumeroTelefonico()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        }
+        return Optional.ofNullable(loginRequest)
+                .map(req -> {
+                    try {
+                        Usuario usuario = usuarioUseCase.login(req.getCorreo(), req.getClave());
+                        return ResponseEntity.ok("Bienvenido: " + usuario.getNombre());
+                    } catch (IllegalArgumentException e) {
+                        return ResponseEntity.ok("Usuario o Contraseña incorrectos");
+                    }
+                })
+                .orElseGet(() -> ResponseEntity.badRequest().body("Datos de login requeridos"));
     }
-
-
 }
