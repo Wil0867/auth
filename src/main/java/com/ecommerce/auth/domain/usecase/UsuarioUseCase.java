@@ -1,19 +1,18 @@
 package com.ecommerce.auth.domain.usecase;
 
 import com.ecommerce.auth.domain.model.Usuario;
+import com.ecommerce.auth.domain.model.gateway.EncriptarGateway;
 import com.ecommerce.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @RequiredArgsConstructor
 public class UsuarioUseCase {
 
     private final UsuarioGateway usuarioGateway;
-    private final PasswordEncoder passwordEncoder;
+    private final EncriptarGateway encriptarGateway;
 
     public Usuario guardarUsuario(Usuario usuario) {
         // 1. Validar que el objeto completo no sea nulo
@@ -51,11 +50,14 @@ public class UsuarioUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("El usuario debe ser mayor de edad (mínimo 18 años)"));
 
         Optional.of(usuarioAValidar.getCorreo())
-                .filter(correo -> correo.contains("@gmail.com"+"@hotmail.com"+"@outlook.com"+"@yahoo.com"))
+                .filter(correo -> correo.endsWith("@gmail.com") || correo.endsWith("@hotmail.com")
+                        || correo.endsWith("@outlook.com") || correo.endsWith("@yahoo.com"))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "El correo debe ser de gmail, hotmail, outlook o yahoo"));
 
-        usuario.setClave(passwordEncoder.encode(usuario.getClave()));
+        usuario.setSaldo(BigDecimal.ZERO);
+
+        usuario.setClave(encriptarGateway.encriptar(usuario.getClave()));
         return usuarioGateway.guardarusuario(usuarioAValidar);
     }
 
@@ -132,7 +134,7 @@ public class UsuarioUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Correo o clave incorrectos"));
 
         return Optional.of(usuario)
-                .filter(u -> passwordEncoder.matches(claveValidada, u.getClave()))
+                .filter(u -> encriptarGateway.verificar(claveValidada, u.getClave()))
                 .orElseThrow(() -> new IllegalArgumentException("Correo o clave incorrectos"));
     }
 }

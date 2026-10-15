@@ -2,6 +2,7 @@ package com.ecommerce.auth.infraestructure.mapper;
 
 import com.ecommerce.auth.domain.model.Usuario;
 import com.ecommerce.auth.infraestructure.driver_adapters.UsuarioData;
+import com.ecommerce.auth.infraestructure.entry_points.dto.RegistroUsuario;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,7 +17,8 @@ public class MapperUsuario {
                 usuarioData.getClave(),
                 usuarioData.getRol(),
                 usuarioData.getEdad(),
-                usuarioData.getNumeroTelefonico()
+                usuarioData.getNumeroTelefonico(),
+                usuarioData.getSaldo()
         );
 
     }
@@ -29,8 +31,20 @@ public class MapperUsuario {
                 usuario.getClave(),
                 usuario.getRol(),
                 usuario.getNumeroTelefonico(),
-                usuario.getEdad()
-
+                usuario.getEdad(),
+                usuario.getSaldo()
         );
+    }
+
+    public Usuario usuario(RegistroUsuario registro){
+        Usuario usuario = new Usuario();
+
+        usuario.setNombre(registro.getNombre());
+        usuario.setCorreo(registro.getCorreo());
+        usuario.setClave(registro.getClave());
+        usuario.setRol(registro.getRol());
+        usuario.setNumeroTelefonico(registro.getNumeroTelefonico());
+        usuario.setEdad(registro.getEdad());
+        return usuario;
     }
 }

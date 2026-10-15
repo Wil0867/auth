@@ -5,6 +5,7 @@ import com.ecommerce.auth.domain.usecase.UsuarioUseCase;
 import com.ecommerce.auth.infraestructure.driver_adapters.UsuarioData;
 import com.ecommerce.auth.infraestructure.entry_points.dto.LoginRequest;
 import com.ecommerce.auth.infraestructure.mapper.MapperUsuario;
+import com.ecommerce.auth.infraestructure.entry_points.dto.RegistroUsuario;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +25,10 @@ public class UsuarioController {
         return Optional.ofNullable(usuarioData)
                 .map(mapperUsuario::toUsuario)
                 .map(usuarioUseCase::guardarUsuario)
-                .map(usuarioGuardado -> usuarioGuardado.getIdUsuario() != null
-                        ? ResponseEntity.ok("Registro éxitoso")
-                        : ResponseEntity.status(HttpStatus.CONFLICT).body(usuarioGuardado))
+                .<ResponseEntity<?>>map(usuarioGuardado -> usuarioGuardado.getIdUsuario() != null
+                        ? ResponseEntity.ok("Registro exitoso de " + usuarioGuardado.getNombre()
+                        + " con ID: " + usuarioGuardado.getIdUsuario())
+                        : ResponseEntity.status(HttpStatus.CONFLICT).body("No se pudo registrar el usuario"))
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
