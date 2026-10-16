@@ -6,6 +6,7 @@ import com.ecommerce.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -55,9 +56,10 @@ public class UsuarioUseCase {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "El correo debe ser de gmail, hotmail, outlook o yahoo"));
 
-        usuario.setSaldo(BigDecimal.ZERO);
+        usuarioAValidar.setSaldo(BigDecimal.ZERO);
 
-        usuario.setClave(encriptarGateway.encriptar(usuario.getClave()));
+        usuarioAValidar.setClave(encriptarGateway.encriptar(usuarioAValidar.getClave()));
+        usuarioAValidar.setIdUsuario(null);
         return usuarioGateway.guardarusuario(usuarioAValidar);
     }
 
@@ -92,6 +94,7 @@ public class UsuarioUseCase {
         Optional.ofNullable(usuarioAValidar.getClave())
                 .filter(clave -> !clave.trim().isEmpty())
                 .orElseThrow(() -> new IllegalArgumentException("La clave es obligatoria"));
+        usuarioAValidar.setClave(encriptarGateway.encriptar(usuarioAValidar.getClave()));
 
         Optional.ofNullable(usuarioAValidar.getRol())
                 .filter(rol -> !rol.trim().isEmpty())
@@ -109,7 +112,9 @@ public class UsuarioUseCase {
                 .filter(correo -> correo.contains("@"))
                 .orElseThrow(() -> new IllegalArgumentException("El correo es obligatorio y debe contener un @ válido"));
 
-        return usuarioGateway.modificarusuario(usuarioAValidar);
+        Usuario existente = usuarioGateway.buscarusuario(usuario.getIdUsuario());
+        usuario.setSaldo(existente.getSaldo());
+        return usuarioGateway.modificarusuario(usuario);
     }
 
     public Usuario buscarUsuario(Long idUsuario) {
@@ -136,5 +141,58 @@ public class UsuarioUseCase {
         return Optional.of(usuario)
                 .filter(u -> encriptarGateway.verificar(claveValidada, u.getClave()))
                 .orElseThrow(() -> new IllegalArgumentException("Correo o clave incorrectos"));
+    }
+
+    public Usuario recargarSaldo(Long idUsuario, BigDecimal montoARecargar) {
+        // 1. Validar que el monto no sea nulo y sea mayor a cero
+        if (montoARecargar == null || montoARecargar.signum() <= 0) {
+            throw new IllegalArgumentException("El monto a recargar debe ser mayor a cero.");
+        }
+
+        // 2. Buscar al usuario usando tu método del gateway
+        Usuario usuario = usuarioGateway.buscarusuario(idUsuario);
+        if (usuario == null) {
+            throw new IllegalArgumentException("Usuario no encontrado con el ID: " + idUsuario);
+        }
+
+        // Asegurar que si el saldo inicial venía nulo de la BD, empiece en 0 antes de sumar
+        if (usuario.getSaldo() == null) {
+            usuario.setSaldo(BigDecimal.ZERO);
+        }
+
+        BigDecimal nuevoSaldo = usuario.getSaldo().add(montoARecargar);
+        usuario.setSaldo(nuevoSaldo);
+
+        // 4. Guardar los cambios en la base de datos
+        return usuarioGateway.guardarusuario(usuario);
+    }
+
+    public Usuario descontarSaldoPorCompra(Long idUsuario, BigDecimal montoCompra) {
+        // 1. Validar que el monto de la compra sea válido
+        if (montoCompra == null || montoCompra.signum() <= 0) {
+            throw new IllegalArgumentException("El monto de la compra debe ser mayor a cero.");
+        }
+
+        // 2. Buscar al usuario
+        Usuario usuario = usuarioGateway.buscarusuario(idUsuario);
+        if (usuario == null) {
+            throw new IllegalArgumentException("Usuario no encontrado con el ID: " + idUsuario);
+        }
+
+        if (usuario.getSaldo() == null) {
+            usuario.setSaldo(BigDecimal.ZERO);
+        }
+
+        // 3. Validar fondos suficientes para evitar saldos negativos
+        // compareTo devuelve -1 si el saldo actual del usuario es MENOR que el costo de la compra
+        if (usuario.getSaldo().compareTo(montoCompra) < 0) {
+            throw new IllegalArgumentException("Saldo insuficiente para realizar la compra. El saldo no puede ser negativo.");
+        }
+
+        // 4. Restar el dinero y persistir el usuario actualizado
+        BigDecimal nuevoSaldo = usuario.getSaldo().subtract(montoCompra);
+        usuario.setSaldo(nuevoSaldo);
+
+        return usuarioGateway.guardarusuario(usuario);
     }
 }

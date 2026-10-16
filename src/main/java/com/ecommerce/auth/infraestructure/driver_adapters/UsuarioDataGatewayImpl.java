@@ -5,6 +5,8 @@ import com.ecommerce.auth.infraestructure.mapper.MapperUsuario;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+
 @Repository
 @AllArgsConstructor
 
@@ -30,8 +32,9 @@ import org.springframework.stereotype.Repository;
 
     @Override
     public Usuario buscarusuario(Long idUsuario) {
-            UsuarioData usuarioData = repository.getReferenceById(idUsuario);
-            return mapperUsuario.toUsuario(usuarioData);
+        return repository.findById(idUsuario)
+                .map(mapperUsuario::toUsuario)
+                .orElse(null);
     }
 
     @Override
@@ -51,6 +54,7 @@ import org.springframework.stereotype.Repository;
                 .map(mapperUsuario::toUsuario)
                 .orElse(null);
     }
+
 }
 
 

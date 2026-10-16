@@ -36,7 +36,7 @@ public class MapperUsuario {
         );
     }
 
-    public Usuario usuario(RegistroUsuario registro){
+    public Usuario toUsuario(RegistroUsuario registro){
         Usuario usuario = new Usuario();
 
         usuario.setNombre(registro.getNombre());
